@@ -1,0 +1,77 @@
+<#
+- This module is a collection of PSScriptAnalyzer rules that are used to enforce best practices and coding standards for PowerShell scripts.
+- The rules are based on the recommendations from the PowerShell Best Practices and Style Guide
+    - Code Layout and Formatting
+        - Capitalization Conventions
+            - Public Identifiers - Pascal Case
+                - Module Names
+                - Function Names
+                - Cmdlet Names
+                - Class Names
+                - Enum Names
+                - Attribute Names
+                - Public Fields and Properties
+                - Global Variables
+                - Constants
+                - Parameter Names
+            - PowerShell Language Keywords - Lower Case
+            - Comment-Based Help Keywords - Upper Case
+            - Two Letter acyronyms - Upper Case
+            - Variables within Functions - Camel Case (taste)
+            - Variables with two-letter acronyms - letters Lower Case 
+            (- Shared Variables - Scope)
+        - Brace Style
+            - OTBF - One True Brace Style (VSCode)
+        - Script-start
+            - Scripts and Functions should use always CmdletBinding
+            - Write script in order of exectution
+                - param
+                - begin
+                - process
+                - end
+                - clean
+        - Identation - 4 spaces
+        - Line length - 115 characters (when possible)
+        - Blank Lines
+            - Around Functions - 2 blank lines
+            - Around Class defintions - 2 blank lines
+            - File End - 1 blank line
+        - Trailing spaces - No trailing spaces
+        - Space around parameters and operators
+            - Single space around: 
+                - Parameter names and operators
+                - Commas
+                - Semicolons
+                - Curly braces
+                - Exception for switch parameters and Unary operators
+            - Single space inside:
+                - subexpressions ($())
+                - scriptblocks ({})
+            - Avoid semi-colons as line terminators
+        - Function structure
+            - Functions
+                - Avoid ending with return statement
+            - Advanced Functions
+                - Verb-Noun naming convention
+                - Noun can be more than one word in Pascal Case
+                - Return objects in Process, not in Begin or End
+                - Always have a CmdletBinding attribute
+                - When process is present, use ValueFromPipeline and ValueFromPipelineByPropertyName
+                - Specify an output type, if functions returns objects
+                    - When more than one type is returned, create one per parameter set
+                - When a ParameterSetName is used in any of the parameters, always provide a DefaultParameterSetName in the CmdletBinding attribute.
+                - When using advanced functions or scripts with CmdletBinding attribute avoid validating parameters in the body of the script when possible and use parameter validation attributes instead.
+        - Documentation
+            - Write comment-based help for all functions and scripts
+            - Inline comments should be soaced two spaces after the code
+            - Document each parameter, short descriptions should reside in the param block
+            - Provide at least a Synopsis, Description, and Example in the comment-based help
+        - Readability
+            - Indentation
+            - Avoid backticks
+        - Naming Conventions
+            - Use the full name of each command
+            - Use full parameter names
+            - Use full explicit Paths
+            - Avoid use of ~
+#>
