@@ -76,7 +76,7 @@
             - Avoid use of ~
 #>
 
-Voorbeeldje:
+#Voorbeeldje:
 #using namespace Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic
 #using namespace System.Management.Automation.Language
 
@@ -299,6 +299,229 @@ function Test-PSPublicIdentifiersPascalCaseParameter {
 #endregion Code Layout and Formatting
 #endregion Public Identifiers - Pascal Case
 #endregion Capitalization Conventions
+#region Script-start
+# - Scripts and Functions should use always CmdletBinding
+function Test-PSScriptStartCmdletBinding {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.ScriptBlockAst]$Ast
+    )
+    
+    # Skip this check if we're in a .psm1 file or if the file path is null
+    if ($null -eq $Ast.Extent.File -or $Ast.Extent.File -match '\.psm1$') {
+        return
+    }
+    
+    # Only check top-level script blocks in .ps1 files
+    if ($Ast.Parent -is [System.Management.Automation.Language.ScriptBlockAst] -or 
+        $Ast.Parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        return
+    }
+    
+    # Check if the script has CmdletBinding
+    $hasCmdletBinding = $false
+    if ($null -ne $Ast.ParamBlock) {
+        foreach ($attribute in $Ast.ParamBlock.Attributes) {
+            if ($attribute.TypeName.Name -eq 'CmdletBinding') {
+                $hasCmdletBinding = $true
+                break
+            }
+        }
+        
+        # If we don't have CmdletBinding, report a violation
+        if (-not $hasCmdletBinding) {
+            [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+                Message  = 'Script is missing CmdletBinding attribute'
+                Extent   = $Ast.ParamBlock.Extent
+                RuleName = $myinvocation.MyCommand.Name
+                Severity = 'Information'
+            }
+        }
+    }
+}
+function Test-PSFunctionStartCmdletBinding {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.FunctionDefinitionAst]$Ast
+    )
+    # Predicate
+    $insideValidConstruct = $false
+    
+    # Check if the function has a CmdletBinding attribute
+    foreach ($attribute in $Ast.Body.ParamBlock.Attributes) {
+        if ($attribute.TypeName.Name -eq 'CmdletBinding') {
+            $insideValidConstruct = $true
+            break
+        }
+    }
+    
+    # If we're not inside a valid construct, report a violation
+    if (-not $insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'Function is missing CmdletBinding attribute'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Information'
+        }
+    }
+}
+# - Write script in order of exectution
+#     - param
+#     - begin
+#     - process
+#     - end
+#     - clean
+# function Test-PSScriptStartOrderOfExecution {
+#     [CmdletBinding()]
+#     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+#     param (
+#         [System.Management.Automation.Language.ScriptBlockAst]$Ast
+#     )
+    
+#     # Only check top-level script blocks in .ps1 files
+#     if ($Ast.Parent -is [System.Management.Automation.Language.ScriptBlockAst] -or 
+#         $Ast.Parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+#         return
+#     }
+
+#     # Check for named blocks in the scriptblock
+#     $blocks = $Ast.FindAll({ $args[0] -is [System.Management.Automation.Language.NamedBlockAst] }, $true)
+    
+#     # Sort blocks by their actual position in the code
+#     $sortedBlocks = $blocks | Sort-Object { $_.Extent.StartOffset }
+    
+#     $expectedOrder = @('param', 'begin', 'process', 'end', 'clean')
+#     $foundBlocks = @()
+    
+#     foreach ($block in $sortedBlocks) {
+#         $blockType = $block.BlockKind.ToString().ToLower()
+#         if ($blockType -in $expectedOrder) {
+#             $foundBlocks += $blockType
+#         }
+#     }
+    
+#     # Check if the found blocks are in the expected order
+#     for ($i = 0; $i -lt ($foundBlocks.Count - 1); $i++) {
+#         $currentIndex = $expectedOrder.IndexOf($foundBlocks[$i])
+#         $nextIndex = $expectedOrder.IndexOf($foundBlocks[$i + 1])
+        
+#         if ($nextIndex -lt $currentIndex) {
+#             return [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+#                 Message  = "Script blocks not in recommended order: param, begin, process, end, clean"
+#                 Extent   = $sortedBlocks[$i + 1].Extent
+#                 RuleName = $myinvocation.MyCommand.Name
+#                 Severity = 'Information'
+#             }
+#         }
+#     }
+# }
+function Test-PSScriptNamedBlockOrder {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.ScriptBlockAst]$Ast
+    )
+    
+    # Only check top-level script blocks (not inside functions)
+    if ($Ast.Parent -is [System.Management.Automation.Language.ScriptBlockAst] -or 
+        $Ast.Parent -is [System.Management.Automation.Language.FunctionDefinitionAst]) {
+        return
+    }
+    
+    # Get only direct child named blocks for this script
+    $blocks = $Ast.FindAll({ 
+            param($node)
+            $node -is [System.Management.Automation.Language.NamedBlockAst] -and
+            $node.Parent -eq $Ast
+        }, $false)
+    
+    # If no blocks or only one block, nothing to check
+    if ($null -eq $blocks -or $blocks.Count -le 1) {
+        return
+    }
+    
+    # Sort blocks by their actual position in the code
+    $sortedBlocks = $blocks | Sort-Object { $_.Extent.StartOffset }
+    
+    $expectedOrder = @('param', 'begin', 'process', 'end', 'clean')
+    $foundBlocks = @()
+    
+    foreach ($block in $sortedBlocks) {
+        $blockType = $block.BlockKind.ToString().ToLower()
+        if ($blockType -in $expectedOrder) {
+            $foundBlocks += $blockType
+        }
+    }
+    
+    # Check if the found blocks are in the expected order
+    for ($i = 0; $i -lt ($foundBlocks.Count - 1); $i++) {
+        $currentIndex = $expectedOrder.IndexOf($foundBlocks[$i])
+        $nextIndex = $expectedOrder.IndexOf($foundBlocks[$i + 1])
+        
+        if ($nextIndex -lt $currentIndex) {
+            return [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+                Message  = "Script blocks not in recommended order: param, begin, process, end, clean"
+                Extent   = $sortedBlocks[$i + 1].Extent
+                RuleName = $myinvocation.MyCommand.Name
+                Severity = 'Information'
+            }
+        }
+    }
+}
+
+function Test-PSFunctionNamedBlockOrder {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.FunctionDefinitionAst]$Ast
+    )
+    
+    # Get the function's script block
+    $scriptBlock = $Ast.Body
+    
+    # Get named blocks in the function
+    $blocks = $scriptBlock.FindAll({ 
+            param($node)
+            $node -is [System.Management.Automation.Language.NamedBlockAst] -and
+            $node.Parent -eq $scriptBlock
+        }, $false)
+    
+    # If no blocks or only one block, nothing to check
+    if ($null -eq $blocks -or $blocks.Count -le 1) {
+        return
+    }
+    
+    # Sort blocks by their actual position in the code
+    $sortedBlocks = $blocks | Sort-Object { $_.Extent.StartOffset }
+    
+    $expectedOrder = @('param', 'begin', 'process', 'end', 'clean')
+    $foundBlocks = @()
+    
+    foreach ($block in $sortedBlocks) {
+        $blockType = $block.BlockKind.ToString().ToLower()
+        if ($blockType -in $expectedOrder) {
+            $foundBlocks += $blockType
+        }
+    }
+    
+    # Check if the found blocks are in the expected order
+    for ($i = 0; $i -lt ($foundBlocks.Count - 1); $i++) {
+        $currentIndex = $expectedOrder.IndexOf($foundBlocks[$i])
+        $nextIndex = $expectedOrder.IndexOf($foundBlocks[$i + 1])
+        
+        if ($nextIndex -lt $currentIndex) {
+            return [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+                Message  = "Function blocks not in recommended order: param, begin, process, end, clean"
+                Extent   = $sortedBlocks[$i + 1].Extent
+                RuleName = $myinvocation.MyCommand.Name
+                Severity = 'Information'
+            }
+        }
+    }
+}
+#endregion Script-start
 #endregion Code Layout and Formatting
 
 # Export the rule
