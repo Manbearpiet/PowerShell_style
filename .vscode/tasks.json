@@ -1,0 +1,13 @@
+{
+  // See https://go.microsoft.com/fwlink/?LinkId=733558
+  // for the documentation about the tasks.json format
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "PSScriptAnalyzer",
+      "type": "shell",
+      "command": "Invoke-ScriptAnalyzer -Path /Users/christian/Documents/Git/Personal/PowerShell_style/PSPaS/test.ps1 -Settings /Users/christian/Documents/ScriptAnalyzerSettings.psd1",
+      "problemMatcher": []
+    }
+  ]
+}

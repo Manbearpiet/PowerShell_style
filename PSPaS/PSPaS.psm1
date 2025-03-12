@@ -75,3 +75,149 @@
             - Use full explicit Paths
             - Avoid use of ~
 #>
+
+Voorbeeldje:
+#using namespace Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic
+#using namespace System.Management.Automation.Language
+
+function Test-PSContinueOutsideLoop {
+    <#
+    .SYNOPSIS
+        PSContinueOutsideLoop
+    
+    .DESCRIPTION
+        The continue statement should only be used inside loops (for, foreach, do, while), switch, or trap statements.
+    #>
+    
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.ContinueStatementAst]$ast
+    )
+    
+    # Get the parent ASTs to determine if we're inside a loop structure
+    $parentAst = $ast.Parent
+    $insideValidConstruct = $false
+    
+    # Navigate up the AST until we find a loop construct or reach the root
+    while ($null -ne $parentAst) {
+        if ($parentAst -is [System.Management.Automation.Language.ForStatementAst] -or
+            $parentAst -is [System.Management.Automation.Language.ForEachStatementAst] -or
+            $parentAst -is [System.Management.Automation.Language.DoWhileStatementAst] -or
+            $parentAst -is [System.Management.Automation.Language.WhileStatementAst] -or
+            $parentAst -is [System.Management.Automation.Language.SwitchStatementAst] -or
+            $parentAst -is [System.Management.Automation.Language.TrapStatementAst]) {
+            
+            $insideValidConstruct = $true
+            break
+        }
+        
+        $parentAst = $parentAst.Parent
+    }
+    
+    # If we're not inside a valid construct, report a violation
+    if (-not $insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'Continue statement is used outside of a loop, switch or trap statement.'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Warning'
+        }
+    }
+}
+
+#region Code Layout and Formatting
+#region Capitalization Conventions
+#region Public Identifiers - Pascal Case
+# - Module Names, how to test this?
+# Function Names
+function Test-PSPublicIdentifiersPascalCaseFunction {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.FunctionDefinitionAst]$ast
+    )
+    # Predicate
+    $insideValidConstruct = $ast.Name -cnotmatch '^[A-Z][a-z]*(-)([A-Z][a-z]*)+$'
+    # If we're not inside a valid construct, report a violation
+    # @(
+    #     'bad-Example1',
+    #     'bad-example2',
+    #     'BadExample3',
+    #     'Badexample4'
+    #     'Good-Example',
+    #     'Good-ExampleTwo'
+    # )
+    if ($insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'Function name is not in Pascal Case or missing a hyphen.'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Information'
+        }
+    }
+}
+# - Cmdlet Names (binary modules only)
+# - Class Names
+# - Enum Names
+function Test-PSPublicIdentifiersPascalCaseClass {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.TypeDefinitionAst]$ast
+    )
+    # Predicate
+    # enum Good {
+    #     Asterisk
+    # }
+    # enum bad {
+    #     Dash
+    # }
+    # class Good {
+    #     [string]$Brand
+    # }
+    # class bad{
+    #     [string]$Model
+    # }
+    $insideValidConstruct = $ast.TypeName -cnotmatch '^[A-Z][a-z]*$'
+    # If we're not inside a valid construct, report a violation
+
+    
+    if ($insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'Class name is not in Pascal Case'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Information'
+        }
+    }
+}
+# - Attribute Names
+function Test-PSPublicIdentifiersPascalCaseAttribute {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.AttributeAst]$ast
+    )
+    # Predicate
+    $insideValidConstruct = $ast.TypeName -cnotmatch '^[A-Z][a-z]*$'
+    # If we're not inside a valid construct, report a violation
+    if ($insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'Attribute name is not in Pascal Case'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Information'
+        }
+    }
+}
+# - Public Fields and Properties
+# - Global Variables
+# - Constants
+# - Parameter Names
+#endregion Public Identifiers - Pascal Case
+#endregion Capitalization Conventions
+#endregion Code Layout and Formatting
+
+# Export the rule
+Export-ModuleMember -Function *
