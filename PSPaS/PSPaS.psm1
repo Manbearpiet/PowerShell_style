@@ -92,7 +92,7 @@ function Test-PSContinueOutsideLoop {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
-        [System.Management.Automation.Language.ContinueStatementAst]$ast
+        [System.Management.Automation.Language.ContinueStatementAst]$Ast
     )
     
     # Get the parent ASTs to determine if we're inside a loop structure
@@ -135,7 +135,7 @@ function Test-PSPublicIdentifiersPascalCaseFunction {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
-        [System.Management.Automation.Language.FunctionDefinitionAst]$ast
+        [System.Management.Automation.Language.FunctionDefinitionAst]$Ast
     )
     # Predicate
     $insideValidConstruct = $ast.Name -cnotmatch '^[A-Z][a-z]*(-)([A-Z][a-z]*)+$'
@@ -197,7 +197,7 @@ function Test-PSPublicIdentifiersPascalCaseAttribute {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
-        [System.Management.Automation.Language.AttributeAst]$ast
+        [System.Management.Automation.Language.AttributeAst]$Ast
     )
     # Predicate
     $insideValidConstruct = $ast.TypeName.Name -cnotmatch '^[A-Z]'
@@ -217,7 +217,7 @@ function Test-PSPublicIdentifiersPascalCaseGlobalVariable {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
-        [System.Management.Automation.Language.VariableExpressionAst]$ast
+        [System.Management.Automation.Language.VariableExpressionAst]$Ast
     )
     # Predicate
     $insideValidConstruct = $false
@@ -240,7 +240,7 @@ function Test-PSPublicIdentifiersPascalCaseConstant {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
-        [System.Management.Automation.Language.CommandAst]$ast
+        [System.Management.Automation.Language.CommandAst]$Ast
     )
 
     # Check if this is a New-Variable command with -Option Constant
@@ -280,7 +280,7 @@ function Test-PSPublicIdentifiersPascalCaseParameter {
     [CmdletBinding()]
     [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
     param (
-        [System.Management.Automation.Language.ParameterAst]$ast
+        [System.Management.Automation.Language.ParameterAst]$Ast
     )
     # Predicate
     $insideValidConstruct = $ast.Name.VariablePath -cnotmatch '^[A-Z]'
