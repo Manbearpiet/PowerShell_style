@@ -158,7 +158,7 @@ function Test-PSPublicIdentifiersPascalCaseFunction {
     }
 }
 # - Cmdlet Names (binary modules only)
-# - Class Names
+# - Class Names - Same as enum names
 # - Enum Names
 function Test-PSPublicIdentifiersPascalCaseClass {
     [CmdletBinding()]
@@ -200,7 +200,7 @@ function Test-PSPublicIdentifiersPascalCaseAttribute {
         [System.Management.Automation.Language.AttributeAst]$ast
     )
     # Predicate
-    $insideValidConstruct = $ast.TypeName -cnotmatch '^[A-Z][a-z]*$'
+    $insideValidConstruct = $ast.TypeName.Name -cnotmatch '^[A-Z]'
     # If we're not inside a valid construct, report a violation
     if ($insideValidConstruct) {
         [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
@@ -211,10 +211,92 @@ function Test-PSPublicIdentifiersPascalCaseAttribute {
         }
     }
 }
-# - Public Fields and Properties
+# - Public Fields and Properties - not a concept in pwsh
 # - Global Variables
+function Test-PSPublicIdentifiersPascalCaseGlobalVariable {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.VariableExpressionAst]$ast
+    )
+    # Predicate
+    $insideValidConstruct = $false
+    if ($ast.VariablePath.IsGlobal) {
+        $insideValidConstruct = $ast.VariablePath.UserPath -cnotmatch '^global:[A-Z]'
+    }
+    # If we're not inside a valid construct, report a violation
+    if ($insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'GlobalVariable name is not in Pascal Case'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Information'
+        }
+    }
+}
+
 # - Constants
+function Test-PSPublicIdentifiersPascalCaseConstant {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.CommandAst]$ast
+    )
+
+    # Check if this is a New-Variable command with -Option Constant
+    if ($ast.CommandElements[0].Value -eq 'New-Variable') {
+        $nameParam = $null
+        $optionParam = $null
+        
+        # Find name and option parameters
+        foreach ($element in $ast.CommandElements) {
+            if ($element -is [System.Management.Automation.Language.CommandParameterAst]) {
+                if ($element.ParameterName -eq 'Name') {
+                    $nameParam = $ast.CommandElements[$ast.CommandElements.IndexOf($element) + 1]
+                }
+                if ($element.ParameterName -eq 'Option') {
+                    $optionParam = $ast.CommandElements[$ast.CommandElements.IndexOf($element) + 1]
+                }
+            }
+        }
+        
+        # Check if this is defining a constant
+        if ($null -ne $optionParam -and $optionParam.Value -eq 'Constant') {
+            # Check if the constant name is Pascal Case
+            if ($nameParam.Value -cnotmatch '^[A-Z][a-zA-Z0-9_]*$') {
+                return [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+                    Message  = 'Constant name is not in Pascal Case'
+                    Extent   = $nameParam.Extent
+                    RuleName = $myinvocation.MyCommand.Name
+                    Severity = 'Information'
+                }
+            }
+        }
+    }
+}
+
 # - Parameter Names
+function Test-PSPublicIdentifiersPascalCaseParameter {
+    [CmdletBinding()]
+    [OutputType([Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord])]
+    param (
+        [System.Management.Automation.Language.ParameterAst]$ast
+    )
+    # Predicate
+    $insideValidConstruct = $ast.Name.VariablePath -cnotmatch '^[A-Z]'
+    # If we're not inside a valid construct, report a violation
+    if ($insideValidConstruct) {
+        [Microsoft.Windows.PowerShell.ScriptAnalyzer.Generic.DiagnosticRecord]@{
+            Message  = 'Parameter name is not in Pascal Case'
+            Extent   = $ast.Extent
+            RuleName = $myinvocation.MyCommand.Name
+            Severity = 'Information'
+        }
+    }
+}
+#endregion Public Identifiers - Pascal Case
+#endregion Capitalization Conventions
+#endregion Code Layout and Formatting
 #endregion Public Identifiers - Pascal Case
 #endregion Capitalization Conventions
 #endregion Code Layout and Formatting
