@@ -1,3 +1,9 @@
 {
-  "powershell.codeFormatting.preset": "OTBS"
+  "powershell.codeFormatting.preset": "OTBS",
+  "powershell.codeFormatting.avoidSemicolonsAsLineTerminators": true,
+  "powershell.codeFormatting.whitespaceAfterSeparator": true,
+  "typescript.format.insertSpaceAfterCommaDelimiter": true,
+  "powershell.codeFormatting.whitespaceInsideBrace": true,
+  "editor.tabSize": 4,
+  "editor.rulers": [115]
 }
